@@ -2,9 +2,8 @@ import streamlit as st
 import mysql.connector
 import pandas as pd
 import plotly.express as px
-import sys
 
-# Configuración de la conexión a la base de datos con manejo de errores
+# Configuración de la conexión a la base de datos
 @st.cache_resource
 def init_connection():
     try:
@@ -16,14 +15,11 @@ def init_connection():
             database="OrigenMedios"
         )
         return conn
-    except mysql.connector.Error as err:
-        st.error(f"Error al conectar a la base de datos: {err}")
-        st.stop()
     except Exception as e:
-        st.error(f"Error inesperado: {e}")
+        st.error(f"Error al conectar a la base de datos: {e}")
         st.stop()
 
-# Función para ejecutar consultas SQL con manejo de errores
+# Función para ejecutar consultas SQL
 @st.cache_data
 def run_query(query):
     try:
@@ -31,11 +27,8 @@ def run_query(query):
             cur.execute(query)
             results = cur.fetchall()
         return results
-    except mysql.connector.Error as err:
-        st.error(f"Error al ejecutar la consulta: {err}")
-        st.stop()
     except Exception as e:
-        st.error(f"Error inesperado: {e}")
+        st.error(f"Error al ejecutar la consulta: {e}")
         st.stop()
 
 # Título de la aplicación
@@ -61,8 +54,11 @@ if rows:
     # Convertir los resultados a un DataFrame de pandas
     df = pd.DataFrame(rows, columns=['Año', 'Mes', 'Inversion MP'])
     
+    # Corregir el formato del año
+    df['Año'] = df['Año'].astype(str).str.replace(',', '').astype(int)
+    
     # Crear una columna de fecha combinando Año y Mes
-    df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes'], format='%Y-%B', errors='coerce')
+    df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + ' ' + df['Mes'], format='%Y %B')
     
     # Ordenar el DataFrame por la nueva columna Fecha
     df = df.sort_values('Fecha')
@@ -84,19 +80,11 @@ if rows:
                                max_value=df['Fecha'].max())
     
     # Filtrar los datos según el rango de fechas seleccionado
-    filtered_df = df[(df['Fecha'] >= pd.to_datetime(date_range[0])) & 
-                     (df['Fecha'] <= pd.to_datetime(date_range[1]))]
+    filtered_df = df[(df['Fecha'].dt.date >= date_range[0]) & 
+                     (df['Fecha'].dt.date <= date_range[1])]
     
     # Actualizar el gráfico con los datos filtrados
     fig_filtered = px.line(filtered_df, x='Fecha', y='Inversion MP', title=f'Inversión MP en el rango seleccionado - {table_name}')
     st.plotly_chart(fig_filtered)
 else:
     st.warning("No se encontraron datos en la tabla seleccionada.")
-
-# Mostrar información de versiones
-st.write("Versiones de las bibliotecas:")
-st.write(f"Python: {sys.version}")
-st.write(f"Streamlit: {st.__version__}")
-st.write(f"mysql-connector-python: {mysql.connector.__version__}")
-st.write(f"pandas: {pd.__version__}")
-st.write(f"plotly: {px.__version__}")
