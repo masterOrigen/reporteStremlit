@@ -2,6 +2,7 @@ import streamlit as st
 import mysql.connector
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 
 # Configuración de la conexión a la base de datos
 @st.cache_resource
@@ -32,6 +33,15 @@ def run_query(query):
     finally:
         conn.close()
 
+# Función para convertir nombres de meses en español a números
+def mes_a_numero(mes):
+    meses = {
+        'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4,
+        'Mayo': 5, 'Junio': 6, 'Julio': 7, 'Agosto': 8,
+        'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    }
+    return meses.get(mes, 0)
+
 # Título de la aplicación
 st.title('Visualización de Datos de OrigenMedios')
 
@@ -52,11 +62,14 @@ if rows:
     # Convertir los resultados a un DataFrame de pandas
     df = pd.DataFrame(rows, columns=['Año', 'Mes', 'Inversion MP'])
     
-    # Corregir el formato del año
+    # Corregir el formato del año y convertir a entero
     df['Año'] = df['Año'].astype(str).str.replace(',', '').astype(int)
     
+    # Convertir mes a número
+    df['Mes_Numero'] = df['Mes'].apply(mes_a_numero)
+    
     # Crear una columna de fecha combinando Año y Mes
-    df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + ' ' + df['Mes'], format='%Y %B')
+    df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes_Numero'].astype(str).str.zfill(2) + '-01')
     
     # Ordenar el DataFrame por la nueva columna Fecha
     df = df.sort_values('Fecha')
