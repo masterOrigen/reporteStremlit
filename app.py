@@ -14,7 +14,7 @@ def init_connection():
             port=25060,  # Añadido el puerto correcto
             user="doadmin",
             password="AVNS_Vfn884XHZhbBRmGnXLo",
-            database="defaultdb"
+            database="OrigenMedios"
         )
         st.success("Conexión establecida exitosamente!")
         return conn
