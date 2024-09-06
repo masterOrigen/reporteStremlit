@@ -55,29 +55,23 @@ table_name = st.selectbox(
 mes_column = "Mes Nombre" if table_name in ["MegaTime2022", "MegaTime2024"] else "Mes"
 
 # Ejecutar la consulta con la tabla seleccionada
-query = f"SELECT Año, `{mes_column}`, `Inversion MP` FROM {table_name} ORDER BY Año, `{mes_column}`;"
-rows = run_query(query)
+@st.cache_data
+def load_data(table_name, mes_column):
+    query = f"SELECT Año, `{mes_column}`, `Inversion MP` FROM {table_name} ORDER BY Año, `{mes_column}`;"
+    rows = run_query(query)
+    if rows:
+        df = pd.DataFrame(rows, columns=['Año', 'Mes', 'Inversion MP'])
+        df['Año'] = df['Año'].astype(str).str.replace(',', '').astype(int)
+        df['Mes_Numero'] = df['Mes'].apply(mes_a_numero)
+        df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes_Numero'].astype(str).str.zfill(2) + '-01')
+        return df.sort_values('Fecha')
+    return pd.DataFrame()
 
-if rows:
-    # Convertir los resultados a un DataFrame de pandas
-    df = pd.DataFrame(rows, columns=['Año', 'Mes', 'Inversion MP'])
-    
-    # Corregir el formato del año y convertir a entero
-    df['Año'] = df['Año'].astype(str).str.replace(',', '').astype(int)
-    
-    # Convertir mes a número
-    df['Mes_Numero'] = df['Mes'].apply(mes_a_numero)
-    
-    # Crear una columna de fecha combinando Año y Mes
-    df['Fecha'] = pd.to_datetime(df['Año'].astype(str) + '-' + df['Mes_Numero'].astype(str).str.zfill(2) + '-01')
-    
-    # Ordenar el DataFrame por la nueva columna Fecha
-    df = df.sort_values('Fecha')
-    
+df = load_data(table_name, mes_column)
+
+if not df.empty:
     # Crear el gráfico con Plotly
     fig = px.line(df, x='Fecha', y='Inversion MP', title=f'Inversión MP a lo largo del tiempo - {table_name}')
-    
-    # Mostrar el gráfico en Streamlit
     st.plotly_chart(fig)
     
     # Mostrar los datos en una tabla
